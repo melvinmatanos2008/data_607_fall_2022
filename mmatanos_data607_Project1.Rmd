@@ -24,7 +24,7 @@ Downloaded the file from blackboard and upload to my github account. Loaded and 
 
 
 ```{r}
-tournamentinfo <- paste(readLines("https://raw.githubusercontent.com/melvinmatanos2008/data_607_fall2022/main/tournamentinfo.txt"), collapse = '\n')
+tournamentinfo <- paste(readLines("https://raw.githubusercontent.com/melvinmatanos2008/data_607_fall_2022/main/tournamentinfo.txt"), collapse = '\n')
 ```
 
 ## Using regular expressions to extract variables from the data
