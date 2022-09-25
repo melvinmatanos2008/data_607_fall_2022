@@ -1,0 +1,161 @@
+---
+title: 'DATA 607: Data Acquisition and Management'
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Assignment 2"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+## Description
+
+Choose six recent popular movies.  Ask at least five people that you know (friends, family, classmates, imaginary friends) to rate each of these movie that they have seen on a scale of 1 to 5.  Take the results (observations) and store them in a SQL database.  Load the information into an R dataframe.
+
+## Loading the required library
+
+```{r}
+library(RMySQL)
+```
+
+## Loading required package: DBI
+
+```{r}
+library(DBI)
+```
+
+
+```{r connect,message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(grid)
+```
+
+# Connect To The Database
+
+```{r}
+drv<-dbDriver("MySQL")
+con <- dbConnect(drv, user="root", password="Mamamary_0908", host="localhost", port=3306, dbname="moviesdb")
+```
+
+
+## Pulling Data from the Database 
+
+Pull data via the connection.
+
+```{r pull_data}
+sql <- 'SELECT `films`.`title`, 
+`reviewers`.`name`, 
+`ratings`.`rating`
+FROM `ratings`
+JOIN `films` ON `films`.`id` = `ratings`.`films_id`
+JOIN `reviewers` ON `reviewers`.`id` = `ratings`.`reviewers_id`'
+movies_df <- dbGetQuery(con, sql)
+
+# Disconnect from the database
+disconnected <- dbDisconnect(con)
+```
+
+## Exploratory Data Analysis
+
+We have loaded the data into a dataframe. 
+Let us perform exploratory data analysis.
+
+```{r first_look}
+dim(movies_df)
+names(movies_df)
+```
+
+```{r}
+movies_df[1:10,]
+```
+
+```{r}
+summary(movies_df$rating)
+```
+
+```{r}
+movies_df %>%
+  group_by(title) %>%
+  summarise(min=min(rating),
+            mean=mean(rating),
+            median=median(rating),
+            max=max(rating))
+```
+
+
+Previewbthe data
+
+```{r preview}
+head(movies_df)
+```
+
+Some of the interesting visualization of my findings:
+
+```{r}
+ggplot(movies_df,aes(x=rating))+
+  geom_bar(fill="red")+
+  ggtitle("Frequency of Ratings")
+```
+
+```{r}
+ggplot(movies_df, aes(x=title, y=rating))+
+  geom_boxplot(fill="LightBlue")+
+  ggtitle("Rating of the Movies")
+```
+  
+
+Except Annihilaton and Deapoint 2 which got the lowest rating the rest of it are in rating 3.
+
+
+
+EXAMPLE ONLY:
+
+
+```{r}
+movies_df %>%
+  group_by(title) %>%
+  summarise(min=min(rating),
+            mean=mean(rating),
+            median=median(rating),
+            max=max(rating))
+```
+
+
+```{r}
+movies_df %>%
+  group_by(title) %>%
+    summarise(min=min(rating),
+            mean=mean(rating),
+            median=median(rating),
+            max=max(rating))
+ggplot(movies_df,aes(x=rating))+
+         geom_bar(fill="red")+
+         labs(x = "Title")
+```
+
+
+```{r}
+ggplot(movies_df,aes(x=rating))+
+         geom_bar(fill="red")+
+         labs(x = "Title")
+```
+
+```{r}
+ggplot(movies_df, aes(x=title, y=rating, fill=title)) + 
+  geom_bar(stat = "identity") + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+
+```{r}
+ggplot(movies_df, aes(x=title, y=rating, fill=title)) + 
+  geom_boxplot() + 
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+

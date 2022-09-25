@@ -1,0 +1,120 @@
+---
+title: 'DATA 607: Data Acquisition and Management'
+author: "Melvin Matanos, Fall 2022"
+subtitle: Assignment 1
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Overview
+
+The dataset provide the informations of nutrition research studies and how it was reported that will include different variables in a large amount of data. As we all know sometimes it was presented in such away causing a confusing or misleading insights to the readers. One of the reason is the inappropriate manipulation of data analysis to enable a favored result to be presented as statistically significant.
+
+Link: https://github.com/fivethirtyeight/data/tree/master/nutrition-studies
+
+
+# Loading the required libraries
+
+
+```{r, warning=FALSE, message=FALSE}
+library(readr)
+library(tidyverse)
+library(ggplot2)
+```
+
+# Loading the data
+
+```{r}
+nutrition_diet<- read.csv(url("https://raw.githubusercontent.com/fivethirtyeight/data/master/nutrition-studies/raw_anonymized_data.csv")) # Loading  nutrition csv from github (URL provided)
+
+```
+
+```{r}
+head(nutrition_diet)# display the glimpse of the data
+```
+
+```{r}
+dim(nutrition_diet) # Shoews the number of rows and columns
+```
+
+For easy and quick analysis data pre-processing was conducted.
+
+```{r}
+df_colums <- c("cancer", "diabetes", "heart_disease", "ever_smoked", "currently_smoke") # Narrow data frame to conduct a more focused analysis
+new_df<- nutrition_diet[df_colums]
+
+```
+
+```{r}
+
+new_df<- ifelse(new_df == "Yes", 1, 0) # changing yes / no to binary zero/one
+
+```
+
+```{r}
+
+id_and_pizza_columns <- c("ID", "PIZZAFREQ") #ID and PIZZAFREQ to join with df_columns 
+df_id_pizza <- nutrition_diet[id_and_pizza_columns]
+
+```
+
+```{r}
+names(df_id_pizza)[names(df_id_pizza) == "PIZZAFREQ"] <- "pizza_freq" 
+# PIZZAFREQ column was rename to match the formatting with the other column names
+
+
+```
+
+```{r}
+
+df_pizza_disease <- data.frame(df_id_pizza, new_df) # combine all the variables of interest into one datarame
+```
+
+
+Verify the data preprocessing for the new dataframe.
+
+```{r}
+head(new_df)
+```
+
+Perform Exploratory data analysis
+
+```{r}
+summary(df_pizza_disease$pizza_freq) # summary statistics of pizza_freq
+```
+
+```{r}
+
+sapply(df_pizza_disease[c(3:7)], mean, na.rm=TRUE) # means of binary elements
+```
+
+```{r}
+hist(df_pizza_disease$pizza_freq, col="steelblue", 
+     xlab = "Frequency of Pizza", ylab = "Frequency of Participants", 
+     main="Frequency of Pizza") # histogram for pizza_freq in order to visualize it properly
+```
+
+```{r}
+barplot_columns <- function(df_columns) {
+  df_columns <- as.data.frame(df_columns)
+  for (col in colnames(df_columns)) {
+    # Print bar plot for column
+    print(ggplot(df_columns, aes(df_columns[ , col])) 
+          + geom_bar(fill="steelblue") + xlab(as.character(col)))
+  }
+} # Bar plot to see the relational information quickly
+
+barplot_columns(new_df)
+```
+
+Conclusions
+
+There is a real issue and associated problem with p-hacking. We will simply do not know if the strength of the relationship found is purely an artifact of the sample, the analytical method used, or legitimate judgment calls made by the researcher.With the improper manipulation of data result it will provide a wromg perception of information.Althoigh this is definitely the easiest way to do as cited like the nutrition data.Performing more deeper analysis is not a good decision otherwise identify the variables of interest and focus on it to come up into a meaningful insights or find ways to avoid it.  
+

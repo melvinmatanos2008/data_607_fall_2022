@@ -1,0 +1,208 @@
+---
+title: 'DATA 607: Data Acquisition and Management'
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Project 1"
+date: "9/21/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+# Required Libraries
+
+```{r, warning=FALSE, comment=FALSE, results=FALSE}
+library(stringr)
+library(knitr)
+```
+
+***
+
+## Loading the Data
+
+Downloaded the file from blackboard and upload to my github account. Loaded and read the data. 
+
+
+```{r}
+tournamentinfo <- paste(readLines("https://raw.githubusercontent.com/melvinmatanos2008/data_607_fall2022/main/tournamentinfo.txt"), collapse = '\n')
+```
+
+## Using regular expressions to extract variables from the data
+
+Extract the required information by using the regular expression. Consider to segregate the player names first. As an observation all of them are in the upper case format so I decided to save it into a vector.
+
+## Player's Name 
+
+```{r pressure}
+player_names <- unlist(str_extract_all(tournamentinfo, '([:upper:]+\\s[:upper:]+(\\s[:upper:]+)?(\\s[:upper:]+)?)'))
+
+# remove the upper row because it is not relevant to the data
+player_names <- player_names[player_names != "USCF ID"]
+
+# change the format to lower case
+player_names <- str_to_title(player_names)
+head(player_names)
+```
+
+
+Using a regular expression in storing this specific information the player's state, total points,players post rating and players pre-rating.
+
+## Player's State
+
+```{r}
+# By using regular expression each player's state can be extracted.
+states <- unlist(str_extract_all(tournamentinfo, '(\n)\\s\\s\\s[:upper:]+'))
+states <- unlist(str_replace_all(states, '^\\s+|\\s+$', ""))
+head(states)
+```
+## Player's Pre-rating
+
+```{r}
+# extracting the pre-rating through regular expression 
+pre_rating <- unlist(str_extract_all(tournamentinfo, '(R:)\\s{1,}\\d+'))
+pre_rating <- unlist(str_replace_all(pre_rating, '(R:)\\s', ""))
+head(pre_rating)
+```
+
+```{r}
+# extracting post rating through regular expression
+post_rating <- unlist(str_extract_all(tournamentinfo, '(->)(\\s{1,})?\\d+'))
+post_rating <- unlist(str_replace_all(post_rating, '(->)(\\s)?', ""))
+```
+
+## Total Points 
+
+```{r}
+# extracting player's total points through regular expression
+total_points <- unlist(str_extract_all(tournamentinfo, '(\\d\\.\\d)'))
+head(total_points)
+```
+
+
+Working on the player opponent data
+
+After the information was seggrated and stored in vectors,I have to think a way of getting the result from the tournament for each player in a string.In order to perform this a specific regular expression was made to obtain the result and the opponent number for each players game.
+
+
+```{r}
+tournament_results <- unlist(str_extract_all(tournamentinfo, '(\\d\\.\\d\\s{2}(\\|[:upper:]\\s{2}(\\s)?(\\s)?(\\d+)?){1,})'))
+tournament_results <- unlist(str_replace(tournament_results, '\\d\\.\\d\\s{2}\\|', ''))
+kable(head(tournament_results))
+```
+
+
+## Storing in a separate data frame
+
+After getting the result, performed the cleaning so that eventually replace the opponent number with pre tournament elo rating. Storing it in a temprorary dataframe in order to combined it later all the data together. 
+
+```{r}
+opponents <- unlist(str_replace_all(tournament_results, '[:upper:]\\s+', ''))
+opponents <- unlist(str_replace_all(opponents, '\\|', '\\,'))
+opponents <- unlist(str_replace_all(opponents, '\\,{2,}', '\\,'))
+opponents <- unlist(str_replace_all(opponents, '(\\,$)', ''))
+opponents <- unlist(str_replace_all(opponents, '^\\,', ''))
+temporary_df <- data.frame(V1 = opponents)
+kable(head(temporary_df))
+```
+
+Splitting and creating a separate columns for each opponent based on the game.
+
+```{r}
+# by using for loop in order to iterate V1 through strsplit and use comma to separate the opponent numbers.Assigned N/A's to those player who did not play.
+for(i in 1:7){
+  temporary_df[, paste0('game', i)] <- sapply(strsplit(as.character(temporary_df$V1),','), "[", i)
+}
+kable(head(temporary_df))
+```
+
+
+## Merge the data into one data frame
+
+After storing the opponent data in a separate dataframe and then performed merging the data with all the vectors in order to create another large dataframe.
+
+
+
+```{r}
+tournament_ratings_df <- data.frame(player_name = player_names, 
+                               player_state = states,
+                               total_points = total_points,
+                               player_pre_rating = pre_rating, 
+                               player_post_rating = post_rating,
+                               game1 = temporary_df$game1,
+                               game2 = temporary_df$game2,
+                               game3 = temporary_df$game3,
+                               game4 = temporary_df$game4,
+                               game5 = temporary_df$game5,
+                               game6 = temporary_df$game6,
+                               game7 = temporary_df$game7)
+
+kable(head(tournament_ratings_df))
+```
+
+
+Changing the data types from strings to numbers
+
+For the purpose of calculating the average, a proper checking of data types was performed and changed the character vectors to numeric vectors.  
+
+
+```{r}
+
+# just to be safe, I changed the data types for these columns to numbers
+tournament_ratings_df$player_pre_rating <- as.numeric(as.character(tournament_ratings_df$player_pre_rating))
+tournament_ratings_df$player_post_rating <- as.numeric(as.character(tournament_ratings_df$player_post_rating))
+tournament_ratings_df$total_points <- as.numeric(as.character(tournament_ratings_df$total_points))
+tournament_ratings_df$game1 <- as.numeric(as.character(tournament_ratings_df$game1))
+tournament_ratings_df$game2 <- as.numeric(as.character(tournament_ratings_df$game2))
+tournament_ratings_df$game3 <- as.numeric(as.character(tournament_ratings_df$game3))
+tournament_ratings_df$game4 <- as.numeric(as.character(tournament_ratings_df$game4))
+tournament_ratings_df$game5 <- as.numeric(as.character(tournament_ratings_df$game5))
+tournament_ratings_df$game6 <- as.numeric(as.character(tournament_ratings_df$game6))
+tournament_ratings_df$game7 <- as.numeric(as.character(tournament_ratings_df$game7))
+```
+
+By using loops in order to substitute opponent numbers with their pre-tournament elo ratings. 
+
+```{r}
+# while iterating over the game columns, iterate over the player opponent number and match it with the opponent's pre-tournament rating. Then replace the opponent number with their rating.
+for(i in 6:12) {
+  for(j in 1:64) {
+    value <- tournament_ratings_df[,i][j]
+    tournament_ratings_df[,i][j] <- tournament_ratings_df$player_pre_rating[value]
+  }
+}
+
+kable(head(tournament_ratings_df))
+```
+
+Taking the average of the pre-tournament elo ratings
+
+After the pre-tournament rating was substituted then the average of this ratings in all seven games of the tournament can be obtained in order to get the average pre chess rating of opponents.
+
+## Opponent Average Pre-Rating
+
+```{r}
+tournament_ratings_df$average_opp_rating <- round(rowMeans(tournament_ratings_df[,6:12], na.rm = TRUE), digits = 0)
+```
+
+## Generate data table
+
+The final data frame to be exported to a csv file
+
+```{r}
+new_tournament_df <- tournament_ratings_df[, c(1:4, 13)]
+kable(new_tournament_df)
+```
+
+## Create (.csv) file
+
+```{r}
+write.csv(new_tournament_df, file = "new_tournamentinfo_data.csv")
+```
+
+
+
+
+
+
+
+
