@@ -1,0 +1,153 @@
+---
+title: 'DATA 607: Data Acquisition and Management'
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 6 - Assignment"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Description
+
+The task for this week is to load an "untidy" .csv file and transofrm it into a tidy dataset. It is containing a data for the two airines. After data wrangling, an anlysis will be done accordingly by comparing the arrivals delays of the two airlines. 
+
+
+# Loading all the required libraries
+
+```{r}
+library(tidyr)
+library(dplyr)
+library(plyr)
+library(ggplot2)
+```
+
+# Reading the data from Github 
+
+A .csv file was created that is exactly the same to the assignment data and upload it to my githu repository. Read the data from .csv into a dataframe.
+
+
+```{r}
+#read in data from GitHub
+untidy_Flight_csv <- read.table("https://raw.githubusercontent.com/melvinmatanos2008/data_607_fall_2022/main/flights.csv",header=TRUE,sep=",")
+
+```
+
+
+```{r}
+#Visualize csv data
+untidy_Flight_csv
+
+```
+
+
+We need to rename the columns then remove the empty row(s). 
+Let us fill in the airline name for the records of delayed flights.
+
+```{r}
+tidy_Flight_csv <- dplyr::rename(untidy_Flight_csv, "AirLine" = colnames(untidy_Flight_csv)[1], "status" = colnames(untidy_Flight_csv)[2])
+tidy_Flight_csv <- tidy_Flight_csv %>%
+  filter(status != "") 
+tidy_Flight_csv$AirLine[seq(2,length(tidy_Flight_csv$status),2)] <- tidy_Flight_csv$AirLine[seq(1,length(tidy_Flight_csv$status),2)]
+tidy_Flight_csv
+
+```
+
+By using the gather function in order to transform the table to be tidy.
+
+```{r}
+tidy_Flight_csv <- tidy_Flight_csv %>% 
+  gather(destination, num_of_flights, 3:7)
+tidy_Flight_csv
+```
+
+Below are the following verall delay rate or the two airlines.
+
+```{r}
+ddply(tidy_Flight_csv, "AirLine", transform, perct = num_of_flights / sum(num_of_flights)) %>% 
+  filter(status == "delayed") %>%
+  group_by(AirLine) %>% 
+  dplyr::summarise(total_perct = sum(perct))
+```
+
+
+There is not much significant large difference between the two airlines.
+
+Displayed the overall delay rate of the five destinations.
+
+```{r}
+ddply(tidy_Flight_csv, "destination", transform, perct = num_of_flights / sum(num_of_flights)) %>% 
+  filter(status == "delayed") %>%
+  group_by(destination) %>% 
+  dplyr::summarise(total_perct = sum(perct))
+```
+
+
+There is a quite remarkable observation of range of the rates.
+
+
+# Analysis
+
+The graph shows the total number of flights by airline and the destination alon with the total number of delayed flights by airline and destination.
+
+```{r}
+tidy_Flight2_csv <- ddply(tidy_Flight_csv, c("AirLine", "destination"), transform, total_flights =  sum(num_of_flights)) %>% 
+  filter(status == "delayed")
+
+ggplot(data = tidy_Flight2_csv, aes(x = paste(destination,"\n",AirLine))) +
+  theme(axis.text.x = element_text(angle = 90)) +
+  xlab("Air Line and Destination") +
+  ylab("Total Number of Flights") +
+  geom_bar(aes(y=total_flights),stat = "identity",col = "red", fill = "red") +
+  geom_bar(aes(y=num_of_flights),stat = "identity",col = "blue", fill = "blue") +
+  geom_rect(mapping=aes(xmin=9.5, xmax=10, ymin=5000, ymax=5250),col = "red", fill = "red") +
+  geom_rect(mapping=aes(xmin=9.5, xmax=10, ymin=4500, ymax=4750),col = "blue", fill = "blue") +
+  geom_text(mapping=aes(x=9.75, y=5250, label="Total Num of Flight"), size=3, vjust=3, hjust=0.5) +
+  geom_text(mapping=aes(x=9.75, y=4750, label="Total Num of Delayed"), size=3, vjust=3, hjust=0.5)
+```
+
+In order for us to have a quick easier comparsion,let us compute the percentage of delays by airline and destinations.
+
+```{r}
+tidy_Flight2_csv <- mutate(tidy_Flight2_csv, delay_perct = num_of_flights / total_flights)
+tidy_Flight2_csv
+```
+Lets make some descriptive statistic to compare the two airlines
+
+```{r}
+print("ALASKA")
+```
+```{r}
+
+tidy_Flight2_csv %>% 
+  filter(AirLine == "ALASKA") %>% 
+  select(delay_perct) %>% 
+  summary()
+```
+
+
+```{r}
+print("AM WEST")
+```
+
+
+```{r}
+tidy_Flight2_csv %>% 
+  filter(AirLine == "AM WEST") %>% 
+  select(delay_perct) %>% 
+  summary()
+```
+
+
+Based on the above statistics it is clearly showing that the AM WEST is higher than the ALASKA arlines. Therefor we can conclude that the ALASKA airlines has a better performance in making their flights on time.
+
+
+
+
+
+
+
