@@ -1,0 +1,150 @@
+---
+title: "DATA 607: Data Acquisition and Management"
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 8 - Assignment"
+date: "10/12/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+We are assigned to work and create a HTML,XML and JSON file document and extract their respesctive information accordingly. We will start working on it by manually creating the three files that contians the same information but saved and stored in a different structure format.
+Having an ambition to become a data scientist R programming is considered as one of the important tools for this specific field and it became my favorite subject so I identified those three books that are discussing the different tutorials, technical concepts and terminologies.The files can be found on my GitHub repository. A screenshot is shown below for each file to easily see the differences on how the data is stored:
+
+# Loading required libraries and the data
+
+After storing it on their designated file structure we will used R to load it.
+
+```{r message=FALSE, warning=FALSE}
+library(xml2)
+library(jsonlite)
+library(tidyverse)
+library(rlist)
+```
+
+Initiailly we will consider the loading of HTML data from Github into a certain dataframe. We will utilizze the two famous libraries to load our HTML data.First is the XML2 which is used to read the file. Then the second one is the RVEST library that will be used to pull out the nodes of interest in creating our vector of characters. When extraction will be done then we will used this vector to create our matrix that will show our own data that has a 5 columns. By doing this we would be able to easily transform the matrix into a dataframe and then finally renaming the columns.
+
+[HTML File](https://github.com/melvinmatanos2008/data_science_activity/blob/main/favorite_books.html)
+
+![](/Users/melvinmatanos/Desktop/favorite_books/HTML.png)
+
+```{r}
+html_books <- xml2::read_html("https://raw.githubusercontent.com/melvinmatanos2008/data_science_activity/main/favorite_books.html")
+headers <- html_books %>% rvest::html_nodes("th") %>% 
+  rvest::html_text() 
+data <- html_books %>% rvest::html_nodes("td") %>% 
+      rvest::html_text()
+matrix <- matrix(data, ncol = 5, byrow = TRUE)
+new_df1 <- as.data.frame(matrix, stringsAsFactors = FALSE) 
+names(new_df1) <- headers
+new_df1
+
+```
+
+After successfully loaded the data then we will read and create a dataframe.XML and HTMl are basically almost similar in such a way it is both using a tags.Since some of our books on the data are having a several authors, we can create a dataframe the same as the concept above or creating a dataframe that will allow all authors will be in each own line and the information will be repeated for each author.
+
+We will now used the read_xml function to read the XML file and performed the extraction of their ID's.Then we will consider to look each and every books ID.By creating an empty dataframe we would be able to hold the data we already extracted for each book. We will use their ID in the XPATH in order for us to extract the data from each book. We add rows for our empty dataframe and utilize a for loop to see the next book. We will used the str_c function to collapse all vectors that has been extracted from the author's data so it will display in one row accordingly.
+
+
+[XML File](https://github.com/melvinmatanos2008/data_science_activity/blob/main/favotie_books.xml)
+
+![](/Users/melvinmatanos/Desktop/favorite_books/XML.png)
+
+```{r}
+xml_books <- xml2::read_xml("https://raw.githubusercontent.com/melvinmatanos2008/data_science_activity/main/favotie_books.xml")
+books <- xml_find_all(xml_books, "//book")
+books_id <- xml_attr(books, "id") 
+
+dataframe <- data.frame()
+
+for (i in books_id) { 
+ title <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/title")) %>%
+   xml_text()
+ author <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/author")) %>%
+   xml_text() %>% str_c(collapse = ", ")
+ publish_year <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/publish_year")) %>%
+   xml_text()
+ pages <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/pages")) %>%
+   xml_text()
+ description <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/description")) %>%
+   xml_text()
+ 
+ hold_data <- data.frame(title, author, publish_year, pages, description) 
+ dataframe <- rbind(dataframe, hold_data)
+}
+
+dataframe
+
+```
+
+Basically the second way of illustrating it is that each author will be in their own line. In such a way all information in the book will be repeated for each author.At this time we will remove the str_c because for the purpose of not letting the vector to collapse and therefore each author will fall on its own line.
+
+
+```{r}
+xml_books <- xml2::read_xml("https://raw.githubusercontent.com/melvinmatanos2008/data_science_activity/main/favotie_books.xml")
+books <- xml_find_all(xml_books, "//book")
+books_id <- xml_attr(books, "id") 
+
+dataframe <- data.frame()
+
+for (i in books_id) { 
+ title <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/title")) %>%
+   xml_text()
+ author <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/author")) %>%
+   xml_text()
+ publish_year <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/publish_year")) %>%
+   xml_text()
+ pages <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/pages")) %>%
+   xml_text()
+ description <- xml_find_all(xml_books, paste0("//book[@id=",i,"]/description")) %>%
+   xml_text()
+ 
+ hold_data <- data.frame(title, author, publish_year, pages, description) 
+ dataframe <- rbind(dataframe, hold_data)
+}
+
+dataframe
+```
+
+The last file we will be working is the JSON file.We will do the same approach above.We will then use the JSON function from jsonlite library. By using the simplifyVector = FALSE it will returns a list and by using rlist library we would be able to do so.
+
+ [JSON File](https://github.com/melvinmatanos2008/data_science_activity/blob/main/favorite_books.json)
+
+![](/Users/melvinmatanos/Desktop/favorite_books/JSON.png)
+
+```{r}
+json_books <- fromJSON("https://raw.githubusercontent.com/melvinmatanos2008/data_science_activity/main/favorite_books.json", simplifyVector = FALSE)$favorite_subject_books
+json_books
+```
+
+With this library we would be able to select the list names we want exactly. We will used the same approach above and use str_c function this will allow all those multiple authors will be in one line.
+
+```{r}
+dataframe <- list.stack(list.select(json_books,title, str_c(`author(s)`, collapse = ", "),publish_year, pages, description))
+names(dataframe) <- names(json_books[[1]])
+dataframe
+#author <- list.select(json_books, author)
+```
+
+
+By using the unlist functin we would be able to see each author on its own individual line for each assigned author.
+
+```{r}
+dataframe <- list.stack(list.select(json_books,title, unlist(`author(s)`),publish_year, pages, description))
+names(dataframe) <- names(json_books[[1]])
+dataframe
+```
+
+## Conclusion
+
+Based on the above  provided screenshoot, JSON file found quite easy to read and write but I'm assuming that this is one of the significant reaason why it is considered the favorite technologies in developing web and frequently used it for their data communication.
+
+We've learn from this assignment the ability to performed manipulation, extraction,parsing and organizing data  by using R in a different structure such as HTML, XML and JSON. For this specific fundamental knowledge we would be able to work data from the web such as API's and can be able to performed a scraping process of a web data.We have initiated to stored each file from different structure so with this reason we can be able to make exactly the same dataframe or we can change it from a differen format but it will be depends on your target of interest what exactly we want to do on our data as presented above.The significant benefits on this assignment is to understand the diffirent structure of a our data and when you got the idea about it we can definitely start to perform extraction of different elements of interest and we would be able to organized it in a format we exactly want to come up or whatever it is required for any purposes or reason.Having said that the way that I performed the data extraction for the three data frames, it resulted in identical data frames. Although as mention above it depends on our specific goal that will let us see multiple techniques or approach that will let the data frames looks different from each another.
+ 
