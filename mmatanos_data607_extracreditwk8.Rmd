@@ -1,0 +1,204 @@
+---
+title: "DATA 607: Data Acquisition and Management"
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 8 - Tidying and Transforming Vaccination Data - Extra Credit"
+date: "10/14/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+We are assigned to performed tidying and transforming Israel vaccination data. It  describes August 2021 data for Israel hospitalization (“Severe Cases”) rates for those individual under 50 (assume “50 and under”) and over 50, for both not vaccinated and fully vaccinated invidvuals within the populations.We need to creat a CSV file, read and load the data then finally performed an analysis based on the data presented on the screenshoot below and answer the questions that required explaination.
+
+
+![](/Users/melvinmatanos/Desktop/a_data_607/data607_wk8_extracredit.png)
+
+# Loading the required libraries and the data
+
+
+```{r}
+library(tidyverse)
+library(stringr)
+library(tidyr)
+```
+
+
+```{r}
+#Load the .csv file
+israel_vac_data <- "https://raw.githubusercontent.com/melvinmatanos2008/data_science_activity/main/Israel_Vaccination_Data.csv"
+
+israel_vac_data <- read.csv(file = israel_vac_data, header = TRUE, sep = ",", na = ".", skip = "1")
+head(israel_vac_data)
+```
+
+We can use glimpse() to take a quick peek of our data in order to understand its contents better.
+
+```{r}
+glimpse(israel_vac_data)
+```
+
+
+# Data Tidying and Transformation Data
+
+We successfully loaded the created data from my Github repository that contains the data of the fully vaccinnnated and not vaccinated with the age group of <50 and >50 respectively. The main goal goal of working this data is to clean the rows and categorize it into a vaccinated and fully vaccinated. In perfoming this way I would be able to combine the required rows for analysis and create new columns to the variable of interest based on its cateory such as the age, vaccination status, population. percent population and severe cases.
+
+
+```{r}
+colnames(israel_vac_data) <- c("X1", "X2", "X3", "X4", "X5", "X6")
+israel_vac_data
+```
+
+Adding columnms 1 and 4.
+
+```{r}
+israel_vac_data2 <- israel_vac_data %>% 
+  add_column(X0 = 1:4, .before = "X1")
+israel_vac_data2
+```
+
+Extract all those variables that has a percentages and separate it with "," and finally creating a dataframe.
+```{r}
+percent_pop <- unlist(str_extract_all(israel_vac_data2, "\\d+(\\.\\d+){0,1}%"))
+
+paste( unlist(percent_pop), collapse = ',')
+perc_population <- data.frame(matrix(unlist(percent_pop), nrow=length(percent_pop), byrow=TRUE),stringsAsFactors=FALSE)
+perc_population
+```
+
+Renaming column and we will add a column ID on it.
+
+```{r}
+colnames(perc_population) <- c("Percent_from_Pop")
+
+perc_population <- perc_population %>% 
+  add_column(ID = 1:4, .before = "Percent_from_Pop")
+perc_population
+```
+
+Ordering the percent population then creating a new column and filled the necessary values on it.
+
+```{r}
+perc_population2 <- perc_population %>% 
+  arrange(factor(Percent_from_Pop, levels = c("23.30%", "73.00%", "7.9%", "90.4%")))
+
+#Create new column and identify the values
+x <- c("1,116,834", "3,501,118", "186,078", "2,133,516")
+perc_population2 <- perc_population2 %>% 
+  add_column(Population = x, .before = "Percent_from_Pop")
+perc_population2
+```
+Extract all the severe cases,use regex to observe the target patterns that fall into those categories.We will convert it into a dataframe and add a new column Id on it.We will drop the columns which is not needed and finally we will create a new dataframe.
+
+```{r}
+Severe_Cases <- unlist(str_extract_all(israel_vac_data2, "[:digit:]{2,3}")) 
+Severe_Cases
+
+severe_cases <- data.frame(matrix(unlist(Severe_Cases), nrow=length(Severe_Cases), byrow=TRUE),stringsAsFactors=FALSE)
+
+severe_cases2 <- severe_cases %>% 
+  add_column(ID = 1:21, .before = "matrix.unlist.Severe_Cases...nrow...length.Severe_Cases...byrow...TRUE.")
+
+severe_cases3 <- severe_cases2[-c(1:17),] 
+severe_cases3
+
+colnames(severe_cases3) <- c("ID2","Severe Cases")
+severe_cases3
+```
+We will used cbind function to combine the tables created and drop the rows in the dataframe which is not required and finally assign a column names.
+
+```{r}
+ vaccination_israel <-  cbind(israel_vac_data2, perc_population2, severe_cases3)
+
+vaccination_israel <- vaccination_israel[, -c(1, 3:8, 11)]
+
+colnames(vaccination_israel) <- c("Age","Population" ,"Percent_from_Pop", "Severe Cases")
+
+vaccination_israel
+```
+
+We will assigned a values for each columns that we created and replace a new names name as severe values from the old columns of vaccination israe. Then finally we will drop the column 4 that is not needed.
+```{r}
+assigned_values <- c("43", "11", "171", "290")
+assigned_values2 <- c("Not Vax", "Fully Vax", "Not Vax", "Fully Vax")
+
+severe_values <- vaccination_israel %>% 
+  add_column(Severe_Cases = assigned_values, Vaccination_Status = assigned_values2)
+
+severe_values <- severe_values[, -c(4)]
+severe_values
+
+```
+
+We reordered the columns.
+
+```{r}
+col_order <- c("Age", "Vaccination_Status", "Population",
+               "Percent_from_Pop", "Severe_Cases")
+vax_israel <- severe_values[, col_order]
+vax_israel
+```
+
+
+# Questions
+
+## 1. Do you have enough information to calculate the total population? What does this total population represent?
+
+No, there is no sufficient information to calculate the total population it is simply because of the specific age group that has a a severe cases presented on the data. Those above and below 50 years old was not specificed who are or not fully vaccinated. At this time all Israeli citizens aged six months and older are eligible for vaccination against COVID-19.When I did my research the total population of Israel is aproximately 8.7 million showed in Israel government dashboard (https://datadashboard.health.gov.il/COVID-19/general) on that time while the data showed a 6.9 million only that will result a difference of approximately 1.8 million. The total population can be calculated based on the people that are those not vaccinated and people fully vaccinated and are above the age bracket eligible on that year for example 17 years of old as on the goverment of Isreal Government website https://corona.health.gov.il/en/vaccine-for-covid/over-12/#:~:text=Who%20is%20eligible%20for%20vaccination,for%20vaccination%20against%20COVID%2D19.Therefore calculating the total population will not be accurate and a specific definition of what is total population should be to come up wuth the exact and appropriate values.
+
+## 2. Calculate the Efficacy vs. Disease; Explain your results.
+
+Vaccine efficacy and vaccine effectiveness measure the proportionate reduction in cases among vaccinated persons. Vaccine efficacy normally used when a study is carried out under ideal conditions, for example, during a clinical trial. Vaccine effectiveness is used when a study is carried out under typical field (that is, less than perfectly controlled) conditions. 
+
+As given above efficay can be calculated  by this formula:
+
+Efficacy vs. severe disease = 1 - (% fully vaxed severe cases per 100K / % not vaxed severe cases per 100K)
+
+
+### Age less than 50 years old
+
+```{r}
+Not_Vaccinated <- (43 / 1000)
+Vaccinated <- (11 / 1000)
+
+Efficacy_less_than_50 <- 1 - (Vaccinated / Not_Vaccinated)
+Efficacy_less_than_50
+
+
+
+```
+
+### Age greater than 50 years old
+
+```{r}
+#Over Fifty
+Not_Vaccinated2 <- (171 / 1000)
+Vaccinated2 <- (290 / 1000)
+
+
+Efficacy_greater_than_50 <- 1 - (Vaccinated2 / Not_Vaccinated2)
+Efficacy_greater_than_50
+```
+
+
+Efficacy vs. severe disease for less than fifty (age) = 0.7441 or 74.41%
+
+Efficacy vs. severe disease for greater than fifty (age) = -0.696 or -69.60%.
+
+As the result presented above the vaccinated less than fifty (50) group experienced 74.41% and he vaccinated greated than fifty (50) group experienced -69.60%  fewer chances and risk than those who would not have vaccinee or had not been vaccinated.
+
+## 3. From your calculation of efficacy vs. disease, are you able to compare the rate of severe cases in unvaccinated individuals to that in vaccinated individuals?
+
+Definitely obvious on the calculated data result that those who are age greater than fifty either vaccinated or fully vaccinated it has a higher risk or chances of getting the disease than those who are age less than fity. There are a lot of several reasons that those individuals has the underlying conditions and the older people might have existing health comlication.It is proven and yet not a surprise when you start to performed the analysis the data that the older are more vulnerable ones and had more complicated health issues that they could be exposed or currently have it.Compare to the young ones that had been vaccinated or not, has the lower risk or fewer chances currently having a healthy conditions and active life with no existing conditions not all but most of them.
+
+
+# Conclusion
+
+Vaccine efficacy/effectiveness (VE) it is measured by calculating the risk of disease among vaccinated and unvaccinated persons and determining the percentage reduction in risk of disease among vaccinated persons relative to unvaccinated persons. The greater the percentage reduction of illness in the vaccinated group, the greater the vaccine efficacy/effectiveness.It is interpreted as the proportionate reduction in disease among the vaccinated group. So a VE of 90% indicates a 90% reduction in disease occurrence among the vaccinated group, or a 90% reduction from the number of cases you would expect if they have not been vaccinated.
+
