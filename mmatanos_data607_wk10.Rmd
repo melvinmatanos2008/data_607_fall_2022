@@ -1,0 +1,100 @@
+---
+title: "DATA 607: Data Acquisition and Management"
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 10 - Assignment"
+date: "10/25/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+
+```{r, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# Introduction
+
+ 
+As a data scientist having the skills of interacting with and extracting data from API's is one of the important analytical skills needed to perform such role.Having said that I could start working with the New York Times website API. The site has many different APIs to choose with and start to extract the data. The goal of this assignment is to choose one of the New York Times APIs, construct an interface in R to read in the JSON data, and
+transform it into an R DataFrame.In order for me to perform those task and access The New York Times API,you need to create an API key. 
+
+# Loading the required libraries
+
+```{r}
+library(httr)
+library(knitr)
+library(kableExtra)
+```
+
+
+Based on the New York Times API documentation for the Times Newswire, you can get links and metadata for Times' articles as soon as they are published on NYTimes.com. The Times Newswire API https://developer.nytimes.com/docs/timeswire-product/1/overview  provides an up-to-the-minute stream of published articles. You can filter results by source (all, nyt, inyt) and section (arts, business, ...).According to the NY Times API documentation for the Books API, all URI's are relative the following path: https://api.nytimes.com/svc/news/v3/content/. Any API calls we make will start with this path, and then we will add additional arguments as we navigate to different sections of data. Another observation is that based on the documentation, it looks like responses will be in JSON format. 
+
+
+```{r}
+# save the url with api-key
+times_newswire_url <- "https://api.nytimes.com/svc/news/v3/content/all/all.json?api-key=FxwSz2tAiBQF1zA0XHxs97ccuzXh1e1B"
+```
+
+ I used the httr library to get the JSON data from the API.
+ 
+```{r}
+new_york_times <- GET(times_newswire_url)
+```
+
+
+Parsing the JSON data and save it in a certain parts in vectors.
+
+I created  an empty vectors to store results in below for loop.
+
+By iterating through the parsed results and storing the data from various sections in vectors so that it can be used for the later task and I would be able to combine into the final dataframe.
+
+```{r}
+newyork_times_details <- content(new_york_times, "parse")
+
+
+titles = vector()
+abstracts = vector()
+sections = vector()
+pb_date = vector()
+urls = vector()
+
+
+for(i in 1:length(newyork_times_details$results)){
+  titles[i] <- newyork_times_details$results[[i]]$title
+  abstracts[i] <- newyork_times_details$results[[i]]$abstract
+  sections[i] <- newyork_times_details$results[[i]]$section
+  pb_date[i] <- newyork_times_details$results[[i]]$published_date
+  urls[i] <- newyork_times_details$results[[i]]$url
+}
+
+```
+
+
+Creating and saving it into a final data frame.
+
+Add  all of the vectors into a final dataframe.
+
+Finally I will print the final dataframe.
+
+```{r}
+
+final_dataframe <- data.frame(titles, abstracts, sections, pb_date, urls)
+
+
+kable(final_dataframe, align = rep('c', 5)) %>% 
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+
+
+# Conclusion
+
+Having an experience and skills in working with API's is a critica skill for a data scientists role. As far as knowledge is concern it is vital and important to understand a certai response data. It is important to note that familiarizing the data structure formats such as XML and JSON is necesary in completing the task with the response data. For this specific assignment our response data are in JSON format.
+
+
+
+
+
