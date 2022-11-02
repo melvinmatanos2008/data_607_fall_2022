@@ -1,0 +1,81 @@
+---
+title: "DATA 607: Data Acquisition and Management"
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 11 - Recommender System"
+date: "10/30/2022"
+output: 
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+# Introduction
+
+One of the interested topic I would like to brought up for this week discussion is the sources of e-learning.As we all know that E-learning is a structured of different courses or another approach of a learning experience that will be delivered via online or  pre-recorded. This is one of the industry that has been considered having a huge growth in the last how many years. It is one of the normal way of the continuing eduction even undergraduate and graduate students to pursue their higher education. With rapid changes causing the massive innovations  that shifts the entire technologies it is definitely significant to continuously learn the skills that required or may required in tour career in the future. “Udemy is an online learning platform aimed at professional adults and students, developed in May 2010. As of Jan 2020, the platform had more than 50 million students and 57,000 instructors teaching courses in over 65 languages. There have been over 295 million course enrollments.” - Wikipedia.Udemy had many courses offered available on their (website(www.udemy.com).You can learn in any steps from the the scrath to an expert or from software engineering to any vocation or technical class that are taught by professionals even a licensed in their filed of expertise wither their respective discipline of industry. It can be compare to Amazon and other website that delivered the same platform and concept of learning that every classes or courses offered will have a feeback score or raying from. The end user or customer. This rating will used a 5 star rating survey that will give the opportunity to those who are buying the courses to evaluate it. Knowing that the price of the cours is a as low as 20 dollars  below on the other courses and making a note to the buyer that this amount will not be even come up in their mind as a waste of money. 
+
+# Scenario Analysis
+
+## Who are your target users?
+
+The target end user or customer or buyer , as long that can access the computer or even the adult or any students that are seeking to dive into an online learning ways or means in improving their skill sets or any topic that might interest them. It ight be a purpose of a practice examination, increasing or improving knowledge or even the existing available experience. We will classify this as into two categories as end user or buyer that will be serve with Udemy services offered online.
+
+## What are their key goals?
+
+User Type I: Exploring a new topic of interest:
+
+End-user Category I are those who looking for a high quality content of courses that will provide them a reasonable price which will match their topic of interest from a different levels  starting from a basic introduction or beginner levels and somehow a depth topic that will compensate on their educational needs that they try to pursue to learn.
+
+End user Type II: Improving a current skill or the experience already availble:
+
+The main goal of End User Categor II are those who are finding a high quality courses that that give them a reasonable price that match the skilss set they want to improve or a current knowledge they are trying to learn more  would will start from intermediate to expert level and somehow a depth topic that will compensate on their educational needs that they try to pursue to learn.
+
+## How can you help them accomplish those goals?
+
+End user Category I will be definitely based on their requirements that will be search. They need to input in the field provided on the website that will match on ther topic of interest. For example if the user is like me interested to learn R then he will input a R programming or letter only  into the search engine  for the reason that were interested how to program R and what are their concepts and terminologies in working with R. All courses that will match will be displayed. The arrangement and how it was displayed will displayed. The courses that will pop up should shows those that is having a high rating star  with the in demand preferences given by the end user who provided their feedback rating. However there are some cases that the high rated courses displayed are having a lower amounts of end user ratings miust be displayed also so that chances of being  selected even a less impact from the end user are less. With this requiremenst for the end user the website should properly work in order to provide the accurate information. For example of the end user will click a specific course like “R for Data Science” then an additional information should displayed on the existing page that they are opening with a well-detailed or level of topic based on the end users interest.(Basic R Programming for Data Science), eventhough the end user did not removed the previous search results at the “R for Data Science” level from the initial search on the website will be enclosed theend  user will put their decision if  they are not interested in learning “Beasic R Programming for Data Science”. Just in case the end user ahs the a Udemy account and wish to login the topic of the courses they wish to learn will be stored and sometimes they can disseminate those information displayed to their respective friends or colleague or even classmates by means of online communication or might have a massive discount of the courses.
+
+End user Category II - I was considering that there could two ways to classify this end user type: End users who did buy a course on the website before, and end users who have.
+
+End users who did not buy a course anything on the website before: These are those individuals or end user who would follow a similar pattern as described above, however, as they started to click on courses marked as “Intermediate” or “Advanced”, the existing and  initial page should change the display of courses that will match on the degree of difficulty they are trying to find.
+
+End users who bought a course on the website site before: the page should used their search history, purchase history, and course history (cansee the status of their course progress that can be defined for example by percent %) and then suggest topic that that they nshould suppose to do  in the progression of their learning. So for example, if a user purchased “Introduction to R” the website maybe will provide a course related to this title  like“Intermediate to R”,
+For all those end user types, if the end user has created a Udemy account, emails should be sent vy a defined frequency for example weekly, bi-weekly or even monthly with suggestions based on the end end user category mentioned above.
+
+
+## Existing Company Set-up Recommendation Engine
+
+Udemy's personalized recommendations system is composed of batch (e.g., feature and machine learning pipelines), streaming (i.e., feature computation in real-time), and online (i.e., microservices to serve personalized recommendations) components. (https://www.linkedin.com/jobs/view/software-engineer-recommendations-at-udemy-3305494364/?utm_campaign=google_jobs_apply&utm_source=google_jobs_apply&utm_medium=organic). Based on the information posted by Udemy they have the capbility to used batch and streaming components as well as the underlying algorithms and evaluation methodologies in order to perform the recommendatin system. 
+
+
+### New User Description I - first time users: 
+
+The user will idenditfy and find the types of a certain topic into then the search field. Once the suer done inputting the required informaiton on the on that fill the page will display all those topic listings that will match on the user input.As an observation the displayed page are automatically seggregated showing those those topic courses with a rating feedback of high and tremendous users was enrolling on that courses being displayed. As far as the information is provided by the firs time user is concerns it seems that their input are signigficant to the recommendations engine of the company because it will returns a different options in a well defined level based on the different given information on the page that is provided by the user such title, author, and etc.There is option too that you would be able to consider looking the history of the other students courses being purchased on their current recommen dation engine.
+
+### User description II - user who has a previous purchased
+
+When you search an "R Programming" on the search engine input field it seems to be the search result are displaying for those user who login the site.This will be an extordinary as some of the customers migth look and assume it that the company uses historical purchased and other courses that was being previewed whoever are interested to enroll. Like the other online courses platforms that each page will specifically displaying the well detailed information that the user would be able to identify and easy to choose which specific courses that an end user could enrolled.One last thing when the this type of user has the accoujnt then it will received an email providing the vourses they have en rolled and other related activity they have made on the page such as the the topics they have searched and etc.
+
+How the email recommendation communication to the end user are more customized to those individual than those to the recommendation that will display the real tume when the specific user are exploring the the Udemy site.
+
+# Suggestions
+
+After a thorough anlysis conducted using the "scenario analysis" it is very obvious that eventhough the company are providing an excellent servcies with a low prices courses but despite on the this thoughts I would like to recomemnd the following:
+
+1.When a certain new user search but not signed into a specific course of interest then the company should have the options of saving all those inputted data. This wil give the end user a quick respinse when returning back tot he previous page which is the initial page displayed that where the search started.Then there should have the user option to see a certain section whether it is located in the left or right section of the page that can be click like something recent search that will provide the detailed history of all the courses that you have check and find out based on your interest.
+
+2.When a user has the account and signed in then started to search for the topic of interest it would displayed those differently those who has no account from the colmpany.If thourses are already search and viewed previously by the user then there should be a history option wherein they could click it again or input it again on the search field.As an example if the end user will search for "R Programming" based ont he abave example then it should showed on the hostory ro recent search that has been on the page.In short if you would like to search a specific course there should be a proper sorting related on the recent history search on the existing page that has been opened.
+
+3.The emailing system should matched on the accurate  and excat time based on their recommendation system that the company are currently practicing. It is so obvious that the company has the capability of dipslaying the required user data that will show the recommended courses based on the previous searches and category of courses that has been purchased and taken already by the previous user.But with those recommendations will not provide a real time to the end user when signing in and searching the course of interest instead it will be sent through email that might be delayed and provide a late action from the end user point of view.There could be a possibility that the company required additional algotrithms which is not available or required an upgradattion.Reason for considering it as part of their improvements and one of my suggestions for a better recimmendation system.Indeed this is a significant part of improvement. Even I am pointing out that there should be a search history on the page, it is also be noted that having a certain portion of teh page that will update when there will be a new purchased and eve new search of courses of interest. 
+
+# Conclusion
+
+The company has a massive impact to those students and other indivdiual who are seeking a low cost training yet quality course content. Based on the current practice of their recommendations engine such email had a made a significant value to the end user but I think they did not consider that by putting up a real time response in both new users and previously purchased courses of interest will result to a high revenue of the company. Lastly, the company should make it sure that the real tiem  recommendation engine should synchronize to their emailing sytem in order for them to reach their goal or earnigns even exceed on it.   
+
+
+
+
+
+
+
+
+
+
