@@ -1,0 +1,425 @@
+---
+title: "DATA 607: Data Acquisition and Management"
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Week 11 - Assignment"
+date: "11/03/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+"Sentiment analysis is a research branch located at the heart of natural language processing (NLP), computational linguistics and text mining. It refers to any measures by which subjective information is extracted from textual documents. In other words, it extracts the polarity of the expressed opinion in a range spanning from positive to negative. As a result, one may also refer to sentiment analysis as opinion mining (Pang and Lee 2008)."
+
+The main goal of this project are divided into two parts:
+
+Work into the mechanics and application of Sentiment Analysis by following an example provided by Juilia Silge and David Robinson from their book Text Mining with R - A Tidy Approach.
+
+Work with a different corpus of your choosing, and
+Incorporate at least one additional sentiment lexicon (possibly from another R package that you’ve found through research).
+
+## Part I - The example from the book "Text Mining with R - A Tidy Approach".
+
+Below code can be found in Chapter 2  of Text Mining with R - A Tidy Approach"*, entitled "Sentiment Analysis with Tidy Data". 
+The full detailed of citation of this code can be found at the end of of this task. 
+
+2.1 - The Sentiments Dataset
+
+```{r message=FALSE, warning=FALSE}
+library(janeaustenr)
+library(tidyverse)
+library(stringr)
+library(tidytext)
+```
+
+
+```{r}
+library(tidytext)
+
+get_sentiments("afinn")
+```
+
+```{r}
+get_sentiments("bing")
+```
+
+```{r}
+get_sentiments("nrc")
+```
+
+2.2 Sentiment Analaysis with Inner Join
+
+```{r}
+tidy_books <- austen_books() %>%
+  group_by(book) %>%
+  mutate(linenumber = row_number(),
+         chapter = cumsum(str_detect(text, regex("^chapter [\\divxlc]", 
+                                                 ignore_case = TRUE)))) %>%
+  ungroup() %>%
+  unnest_tokens(word, text)
+tidy_books
+```
+
+```{r}
+nrc_joy <- get_sentiments("nrc") %>% 
+  filter(sentiment == "joy")
+
+tidy_books %>%
+  filter(book == "Emma") %>%
+  inner_join(nrc_joy) %>%
+  count(word, sort = TRUE)
+```
+
+```{r}
+library(tidyr)
+
+jane_austen_sentiment <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(book, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+jane_austen_sentiment
+```
+
+```{r fig.width=10}
+library(ggplot2)
+
+ggplot(jane_austen_sentiment, aes(index, sentiment, fill = book)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~book, ncol = 2, scales = "free_x")
+```
+
+2.3 Comparing the three sentiment dictionaries
+
+```{r}
+pride_prejudice <- tidy_books %>% 
+  filter(book == "Pride & Prejudice")
+
+pride_prejudice
+```
+
+
+```{r}
+afinn <- pride_prejudice %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  group_by(index = linenumber %/% 80) %>% 
+  summarise(sentiment = sum(value)) %>% 
+  mutate(method = "AFINN")
+
+bing_and_nrc <- bind_rows(pride_prejudice %>% 
+                            inner_join(get_sentiments("bing")) %>%
+                            mutate(method = "Bing et al."),
+                          pride_prejudice %>% 
+                            inner_join(get_sentiments("nrc") %>% 
+                                         filter(sentiment %in% c("positive", 
+                                                                 "negative"))) %>%
+                            mutate(method = "NRC")) %>%
+  count(method, index = linenumber %/% 80, sentiment) %>%
+  spread(sentiment, n, fill = 0) %>%
+  mutate(sentiment = positive - negative)
+```
+
+
+
+```{r fig.width= 10}
+bind_rows(afinn, 
+          bing_and_nrc) %>%
+  ggplot(aes(index, sentiment, fill = method)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~method, ncol = 1, scales = "free_y")
+```
+
+```{r}
+get_sentiments("nrc") %>% 
+     filter(sentiment %in% c("positive", 
+                             "negative")) %>% 
+  count(sentiment)
+
+get_sentiments("bing") %>% 
+  count(sentiment)
+```
+
+2.4 Most Common Positive and Negative Words
+
+```{r}
+bing_word_counts <- tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  ungroup()
+
+bing_word_counts
+```
+
+```{r}
+bing_word_counts %>%
+  group_by(sentiment) %>%
+  top_n(10) %>%
+  ungroup() %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n, fill = sentiment)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~sentiment, scales = "free_y") +
+  labs(y = "Contribution to sentiment",
+       x = NULL) +
+  coord_flip()
+```
+
+2.5 Wordclouds
+
+```{r}
+library(wordcloud)
+
+tidy_books %>%
+  anti_join(stop_words) %>%
+  count(word) %>%
+  with(wordcloud(word, n, max.words = 100))
+```
+
+```{r}
+library(reshape2)
+
+tidy_books %>%
+  inner_join(get_sentiments("bing")) %>%
+  count(word, sentiment, sort = TRUE) %>%
+  acast(word ~ sentiment, value.var = "n", fill = 0) %>%
+  comparison.cloud(colors = c("gray20", "gray80"),
+                   max.words = 100)
+```
+
+The code above can be found from the book " Text Mining with R - A Tidy Approach", Chapter 2: Sentiment Analysis with Tidy Data by Juilia Silge and David Robinson 2017.(https://www.tidytextmining.com/sentiment.html.
+
+
+## Part II - Additional Sentiment Lexicon
+
+I have chosen to analyze text from the two articles posted on the (https://harvardlawreview.org/) by using the Loughran-McDonald Sentiment Lexicon.
+
+The following article below entitled:
+
+1. Policing the Emergency Room: Article by Ji Seon Song
+(https://harvardlawreview.org/2021/06/policing-the-emergency-room/)
+
+It explores how the courts' interpretation of the Fourth and Fifth Amendments has resulted in the criminalization of the emergency room. The ER is where people go when they are vulnerable and injured. ERs play a crucial “safety-net” function for those who do not have access to other types of medical care.
+
+
+2. Monopolizing Whiteness: Article by Erika K. Wilson :
+(https://harvardlawreview.org/2021/05/monopolizing-whiteness/)
+
+This Article further suggests that equal protection doctrine, the doctrine traditionally used to address racial segregation in schools, cannot capture the monopolization harms caused by white-student segregation. Therefore, it looks to antitrust law for guidance. It demonstrates how principles from antitrust’s essential facilities doctrine can help conceptualize and remedy the monopolization harms caused by white-student segregation in racially diverse metropolitan areas.
+
+```{r}
+library(stringr)
+library(janeaustenr)
+library(tidyr)
+library(rvest)
+library(dplyr)
+```
+
+Creating and Unnest Dataframe
+
+We will create and unnest dataframes. The word unnesting of dataframe refers to flattening it.The string values from article_1_text and article_2_text are stored in dataframes per article. Each dataframe will be then unnests (tidytext) the words such that each row stores one row. Column names are renamed so there’s an agreement between the two dataframes for ease of binding the tables later.
+
+Article 1: Policing the Emergency Room
+
+We will start to scraped it out through html_nodes and then we will be converting string into text.After the text are completely cleaned of any unnecessary notations carried over from scraping the data, then finally we will continue to initiate the content storing in variables article_1_text.
+
+```{r}
+html_article_1<-read_html("https://harvardlawreview.org/2021/06/policing-the-emergency-room/")
+article_1_text<-html_article_1%>%
+  html_nodes("p")%>%
+  html_text()
+
+article_1_text<-article_1_text%>%
+  str_replace_all(pattern="\n",replacement="")%>%
+  str_replace_all(pattern="\\d|\\d+",replacement="")%>%
+  str_replace_all(pattern="\\(|\\)|\\-|\\;",replacement="")
+```
+
+Article 2: Monopolizing Whiteness
+
+We will continue performing the scraping through html_nodes and then we will be again converting string into text.After the text are completely cleaned of any unnecessary notations carried over from scraping the data, then finally we will continue to initiate the content storing in variables article_2_text.
+
+```{r}
+html_article_2<-read_html("https://harvardlawreview.org/2021/05/monopolizing-whiteness/")
+article_2_text<-html_article_2%>%
+  html_nodes("p")%>%
+  html_text()
+
+ article_2__text<-article_2_text%>%
+  str_replace_all(pattern="\n",replacement="")%>%
+  str_replace_all(pattern="\\d|\\d+",replacement="")%>%
+  str_replace_all(pattern="\\(|\\)|\\-|\\;",replacement="")%>%
+  str_replace_all(pattern="white|whites|White|Whites",replacement="")%>%
+  str_replace_all(pattern="black|blacks|Black|Blacks",replacement="")
+```
+
+
+Based on the above code output which prevail from scraping is removed by using regex, as well as the words "white(s) and black(s)" since the lexicon will regard these terms as adjectives rather than as nouns. 
+
+Since we have completely scraped out the data. We will be creating dataframe for the two aricles and started on Article 1: Policing the Emergency Room.
+
+```{r}
+
+ER<-rep(c("ER"),times=length(article_1_text))
+dataframe_article_1<-data.frame(article_1_text,ER)
+colnames(dataframe_article_1)<-c("text","title")
+tidy_article_1<-dataframe_article_1%>%
+  unnest_tokens(word,text)
+```
+
+Then creating a dataframe for Article 2: Monopolizing Whiteness.
+
+```{r}
+ Monopolizing<-rep(c("Monopolizing"),times=length(article_2_text))
+dataframe_article_2<-data.frame(article_2_text,Monopolizing)
+colnames(dataframe_article_2)<-c("text","title")
+tidy_article_2<-dataframe_article_2%>%
+  unnest_tokens(word,text)
+
+```
+
+We will finally combine the two dataframe.
+
+```{r}
+combined_articles<-rbind(dataframe_article_1,dataframe_article_2)
+```
+
+Word Count each raw data from the two articles
+
+Both dataframes are in in their respective tidy forms counts up the frequency of each word content. It showed that the sum of the raw count required to pare down those what exactly we need (i.e. a, the, an, and, etc) and this can be done through sifting.When you have many variables in a dataset, it can be hard to find or see the ones that interest you. And if your datasets are large, and you don’t need all the variables, keeping the extras soaks up resources unnecessarily. So, sometimes we need to keep some variables and drop others.However based on the this articles, the two significant words found in ER is “police” and “policing” and for Whiteness it is “school” and “district”.
+
+
+```{r}
+article_1_count<-count(tidy_article_1,word,sort=TRUE)
+head(article_1_count,15)
+```
+
+
+```{r}
+article_2_count<-count(tidy_article_2,word,sort=TRUE)
+head(article_2_count,15)
+```
+
+# Loughran-McDonald Sentiment Lexicon
+
+It is an English sentiment lexicon created for use with financial documents. This lexicon labels words with six possible sentiments important in financial contexts: "negative", "positive", "litigious", "uncertainty", "constraining", or "superfluous" (https://rdrr.io/cran/textdata/man/lexicon_loughran.html).
+
+Some of these words are not used frequently, so let's define them: 
+
+1. Litigious: unreasonably prone to go to law to settle disputes.
+2. Superfluous: unnecessary, especially through being more than enough.
+
+
+
+```{r}
+loughran <- get_sentiments("loughran") 
+unique(loughran$sentiment)
+```
+
+Assigning Sentiments
+
+Sentiment shows the overall tonality of any given article or mention. This provides a look at each result and consolidates the message's tone into either positive, negative, neutral, or not rated. These are derived from our sentiment analysis. It helps give context to the result and, holistically, provides an overview as to the tone of your search, your brand, or relevant topics to you.We use this aricle to highlight that even for this analysis, context still matters when determining sentiment as it relates to the overall goals within our results. 
+
+
+We will used inner_join for this specific example of sentiment analysis.It is used on the unnessted and tidy dataframe of “ER” to match each word with their respective sentiment from Loughran. After finalizing the result then we will categorized per sentiment and visualizing by using ggplot. With thisk specific article seems to me that the high counts of litious and negative words relates to criminal justice. The words characterize as postive for example are "better" and "progress" however despite of this impact the value for this sentiment are lower than the others that are being identified and incldued on this analysis. 
+
+
+
+```{r}
+article_1_sentiment <- tidy_article_1 %>%
+  inner_join(get_sentiments("loughran"))
+```
+
+```{r}
+article_1_sentiment_count<-count(article_1_sentiment,sentiment,sort=TRUE)
+head(article_1_sentiment_count)
+```
+
+```{r}
+article_1_sentiment%>%
+  count(sentiment,word)%>%
+  filter(sentiment %in% c("positive","negative","uncertainty","litigious"))%>%
+  group_by(sentiment)%>%
+  top_n(10)%>%
+  ungroup%>%
+  mutate(word=reorder(word,n))%>%
+  mutate(sentiment=factor(sentiment,levels=c("positive","negative","uncertainty","litigious")))%>%
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_col(alpha=1,show.legened=FALSE)+
+  coord_flip()+
+  scale_y_continuous(expand=c(0,0))+
+  facet_wrap(~sentiment,scales="free")+
+  labs(x=NULL,y="Total Number of Occurrences",
+       title="Loughran Sentiment Frequency - Policing the Emergency Room ")
+       
+```
+
+
+In looking at the chart above, we can see that the positive words such as better, achieving and achieve reflecting a high values result.While the criminal word in negative sentiment get a high values. From the "litigious" sentiment it does relate strongly to words that have a legal connotation as showed above.Seems to be the word "may" reflecting a high values in "uncertainty" sentiment. 
+
+The same approach was performed for the "Monopolizing Whiteness" article as illustrated.The analysis result provide us the interpretation that for this article the positive values are rising with respect to the "Policing the Emergency Room" article thus slightly closer to the "negative" count. In totality the remaining sentiment litigious and negative reflecting a high values but did not dominated the positive sentiment.
+
+
+```{r}
+article_2_sentiment <- tidy_article_2 %>%
+  inner_join(get_sentiments("loughran"))
+```
+
+```{r}
+article_2_sentiment_count<-count(article_2_sentiment,sentiment,sort=TRUE)
+head(article_2_sentiment_count)
+```
+
+
+```{r}
+article_2_sentiment%>%
+  count(sentiment,word)%>%
+  filter(sentiment %in% c("positive","negative","uncertainty","litigious"))%>%
+  group_by(sentiment)%>%
+  top_n(10)%>%
+  ungroup%>%
+  mutate(word=reorder(word,n))%>%
+  mutate(sentiment=factor(sentiment,levels=c("positive","negative","uncertainty","litigious")))%>%
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_col(alpha=1,show.legened=FALSE)+
+  coord_flip()+
+  scale_y_continuous(expand=c(0,0))+
+  facet_wrap(~sentiment,scales="free")+
+  labs(x=NULL,y="Total Number of Occurrences",
+       title="Loughran Sentiment Frequency - Monopolizing Whiteness")
+```
+
+
+```{r}
+combined_sentiment<-rbind(article_1_sentiment,article_2_sentiment)
+combined_sentiment%>%
+  count(sentiment,word)%>%
+  filter(sentiment %in% c("positive","negative","uncertainty","litigious"))%>%
+  group_by(sentiment)%>%
+  top_n(10)%>%
+  ungroup%>%
+  mutate(word=reorder(word,n))%>%
+  mutate(sentiment=factor(sentiment,levels=c("positive","negative","uncertainty","litigious")))%>%
+  ggplot(aes(word,n,fill=sentiment))+
+  geom_col(alpha=1,show.legened=FALSE)+
+  coord_flip()+
+  scale_y_continuous(expand=c(0,0))+
+  facet_wrap(~sentiment,scales="free")+
+  labs(x=NULL,y="Total number of occurrences",
+       title="Sentiment Frequency of the Articles - Harvard Law Review")
+```
+
+
+# Conclusion
+
+
+Sentiment analysis migth be one of the most powerful approach if you have done carefully and correctly.For you to provide a meaningful insights on a certain text data you are interested to performed an analysis, we need to remember that asking the appropriate and accurate questions about the text would definitely led you to a powerful story.We would be able to figure out how positive or negative does a text will be.Or probably we would be able to addressed exactly the correct emotions that contained on your selected text. Otherwise you can consider to find something that might interest you on the text. Pointing out those questions before your analysis would realy mean a lot on your analysis result and output of your story.Having said that choosing a specific lexicon are vital to your analysis.Choosing the rigth lexicon will definitely break your analysis into pieces that will let you understand more about the text.Additionally spending ample time to reasearch different lexicon and choose which one is appropriate for your analysis are also critical to come up with a great result of your analysis.Lastly, we need to performed the step by step approach and checking those words that are listed on top that we think contributing a lot to our sentiment analysis this ensure that we will not make any false representation just like what we did on the above example.
+
+
+
+
