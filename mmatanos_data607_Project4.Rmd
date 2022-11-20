@@ -1,0 +1,266 @@
+---
+title: 'DATA 607: Data Acquisition and Management'
+author: "Melvin Matanos, Fall 2022"
+subtitle: "Project 4"
+date: "11/14/2022"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+# Introduction
+
+The purpose of this project is to build a classification model that can accurately classify spam email messages from ham email messages. We will do this by using pre-classified email messages to build a training set and then build a predictive model to forecast unseen email messages as either spam or ham. In order to build this predictive model, we'll also need to rely heavily on several text mining techniques which will be demonstrated below. We'll begin this project by loading the required libraries. 
+
+
+# Loading the required Libraries
+
+```{r setup, warning=FALSE, message=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(stringi)
+library(kableExtra)
+library(corpus)
+library(caret)
+library(randomForest)
+library(tm)
+library(stringr)
+library(SnowballC)
+library(wordcloud)
+library(e1071)
+library(NLP)
+```
+
+# Downloading the emails
+
+We will take our data set from the locations that can be downloaded from (https://spamassassin.apache.org/old/publiccorpus/) as individual files. We will need to read in each file from the repository listed on the project page and then create a dataframe with one email per row. We'll start by getting the file path to each file and storing it as a list.The code can be found below, downloads the files, unzips the files, and saves them to the local directory provided.
+
+```{r, message=FALSE, warning=FALSE}
+download.file(url = "http://spamassassin.apache.org/old/publiccorpus/20021010_easy_ham.tar.bz2", destfile = "20021010_easy_ham.tar.bz2")
+untar("20021010_easy_ham.tar.bz2",compressed = "bzip2")
+ham_emails = list.files(path = "easy_ham",full.names = TRUE)
+
+download.file(url = "http://spamassassin.apache.org/old/publiccorpus/20030228_spam_2.tar.bz2", destfile = "20030228_spam_2.tar.bz2")
+untar("20030228_spam_2.tar.bz2", compressed = "bzip2")
+spam_emails = list.files(path = "spam_2", full.names = TRUE)
+```
+
+# Saving emails in a list 
+
+By converting the ham and spam emails into a list, we can then easily create a dataframe of the emails.
+
+```{r}
+spam_emails_list <- NA
+for (i in 1:length(spam_emails)){
+  email_text1 <- readLines(spam_emails[i])
+  email_list1 <- list(paste(email_text1, collapse = "\n"))
+  spam_emails_list <- c(spam_emails_list, email_list1)
+}
+
+ham_emails_list <- NA
+for (i in 1:length(ham_emails)){
+  email_text <- readLines(ham_emails[i])
+  email_list <- list(paste(email_text, collapse = "\n"))
+  ham_emails_list <- c(ham_emails_list, email_list)
+}
+
+```
+
+We will remove the blank first item on the lists.
+
+```{r}
+ham_emails_list <- ham_emails_list[-1]
+spam_emails_list <- spam_emails_list[-1]
+```
+
+
+# Creating dataframes from the email lists
+
+We can start creating our dataframe and add a column in order to help us categorize it as a spam or ham.
+
+```{r}
+ham_dataframe <- data.frame(unlist(ham_emails_list))
+ham_dataframe$email_group <- 'ham'
+
+ham_dataframe <- ham_dataframe %>%
+  rename("email_text" = unlist.ham_emails_list.)
+
+spam_dataframe <- data.frame(unlist(spam_emails_list))
+spam_dataframe$email_group <- 'spam'
+
+spam_dataframe <- spam_dataframe %>%
+  rename("email_text" = unlist.spam_emails_list.)
+```
+
+# Combining the two dataframes
+
+We can combine now the two dataframe into one.Then include the added column that will be used to categorize it later whether it is a spam or ham.
+
+
+```{r}
+complete_email_dataframe <- rbind(ham_dataframe, spam_dataframe)
+complete_email_dataframe$email_group <- factor(complete_email_dataframe$email_group)
+
+set.seed(3453)
+
+complete_email_dataframe <- complete_email_dataframe[sample(nrow(complete_email_dataframe)),]
+spam_idx_v <- which(complete_email_dataframe$email_group == "spam")
+ham_idx_v <- which(complete_email_dataframe$email_group == "ham")
+```
+
+Removing some unuseful variables 
+
+We will removed some variables that will not be used in our further analysis. 
+
+ Remove some variables that seems to be not useful and cannot be used.
+
+```{r, warning=FALSE, message=FALSE}
+rm(email_list1, email_list, i, email_text, email_text1, ham_emails_list, spam_emails_list)
+
+```
+
+
+Upon running it on my computer I found some issues so therefore I had to add few lines of code to fix it.
+
+```{r}
+spam_dataframe$email_text <- iconv(spam_dataframe$email_text, "ASCII", "UTF-8", sub="byte")
+ham_dataframe$email_text <- iconv(ham_dataframe$email_text, "ASCII", "UTF-8", sub="byte")
+complete_email_dataframe$email_text <- iconv(complete_email_dataframe$email_text, "ASCII", "UTF-8", sub="byte")
+```
+
+
+# Creating and cleaning the corpus
+
+After completing the creation of dataframe then we can start creating our corpus for text analysis. We will start reading he text column of the completed dataframe into a corpus, normalized and try to striped out all those whitespaces. Finally we will trasnformed all text into a lowercase, remove stopwords and punctuation, so that it will be more effective in peforming a text analysis.
+
+
+```{r, warning=FALSE, message=FALSE}
+complete_email_corpus <- Corpus(VectorSource(complete_email_dataframe$email_text))
+
+complete_email_corpus_cleaned <- complete_email_corpus %>%
+    tm_map(stripWhitespace) %>%
+    tm_map(content_transformer(tolower)) %>%
+    tm_map(removePunctuation) %>%
+    tm_map(removeWords, stopwords()) %>% 
+    tm_map(removeNumbers)
+```
+
+
+# Creating term document matrix
+
+Once the completed corpus is ready, we can start now creating a document term matrix of terms.
+
+
+```{r}
+complete_email_dtm <- DocumentTermMatrix(complete_email_corpus_cleaned)
+```
+
+# Generating word cloud
+
+We can generate a word cloud to take a quick look on the difference in frequency words that can be found in spam emails from the ham emails. We will create a two separate word clouds and this will specify only those words that will occur at leat 550 times in the whole complete corpus.We will start the spam word cloud and then the ham word cloud.
+
+
+```{r}
+suppressWarnings(wordcloud(complete_email_corpus_cleaned[spam_idx_v], min.freq=550))
+```
+
+
+```{r}
+suppressWarnings(wordcloud(complete_email_corpus_cleaned[ham_idx_v], min.freq=550))
+```
+
+
+We can think of using the Random Forest Model to build our prediction in a test set of emails. From this model we would be able to visually see some of the differences in frequency of words between the two word clouds.
+
+By removing the sparse terms from the document term matrix we would be able to proceed our further analysis and with this reason we can reduce the time we will spend in processing our model.We will at least remove the sparse term by approximately 5% and 75% of the documents respectively.. 
+
+
+```{r}
+complete_email_dtm <- removeSparseTerms(complete_email_dtm, 0.95)
+complete_email_dtm
+```
+
+
+```{r}
+complete_email_dtm_sparse <- removeSparseTerms(complete_email_dtm, 0.25)
+complete_email_dtm_sparse
+```
+
+
+# Working on the data with random forest model
+
+By curiosity reason I was interested to figure out how sparsity would have a significant impact on the outcome of our random forest model.We start to model the training and test set, then we will split the complete email dataframe into a 70/30. From this splitting approach the 70% of the document will go to the training the model and the rest of the 30% will be used to test our model.Then finaly we will create the matrices, corpus and dataframe from  the document term matrices for random forest and add a column with the factor
+
+```{r}
+train_index <- createDataPartition(complete_email_dataframe$email_group, p = 0.70, list = FALSE)
+model_train <- complete_email_dataframe[train_index,] # 70%
+model_test <- complete_email_dataframe[-train_index,] # 30%
+
+model_dtm_train <- complete_email_dtm[train_index,] # document term matrices created
+model_dtm_test <- complete_email_dtm[-train_index,]
+
+model_corpus_train<- complete_email_corpus_cleaned[train_index] # corpus created
+model_corpus_test<- complete_email_corpus_cleaned[-train_index]
+
+training_set <- as.data.frame(as.matrix(model_dtm_train)) # dataframe created from the document term matrices
+training_set$email_group <- model_train$email_group
+
+test_set <- as.data.frame(as.matrix(model_dtm_test))
+test_set$email_group <- model_test$email_group
+```
+
+We have separated the data that has a more sparse into training and test, then we can now used the training set to start creating our random forest classifier.We can start it by creating the classifier and then run the random forest model. And finally we can use the classifier to predict spam or ham on the given test dataset.
+
+
+```{r, cache=FALSE}
+random_forest_classifier <- randomForest(x = training_set[-456], y = training_set$email_group)
+ prediction <- predict(random_forest_classifier, newdata = test_set[-456])
+```
+
+Now that we have completed the creation of the classifier and even used it for our model predictions we can then used the confusion matrix to see the results of the model. 
+
+```{r, cache=TRUE}
+confusion_matrix <- table(test_set[, 456], prediction)
+kable(confusion_matrix, align = rep('c', 2)) %>% 
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+Based on the confusion matrix we would be able to determined that the random forest model is predicting approximately 99% of the our test email accurately.
+
+We will try to used a less sparse data in working a random forest model while reducing the time in predicting the model. we can start by using the 455 terms with the same approach above. From this testing we would be able to see the difference from  above data that has more sparse terms than below which has a less sparse term. In addition by cutting down the sparsity of the document term matrix we ill be able to see those terms that has a high frequencies in the corpus. It will provide us the idea of seeing it as effective in predicting spam and ham emails in our testing dataset. We will examined if only few terms can be found on spam emails or vice versa based on the frequency. The same approach above create the document term matrices, classifier, and dataframe then finally run the random forest model and used the classifier to predeict spam/ham on the test dataset.
+
+
+```{r, cache=TRUE}
+model_sparsed_tm_train <- complete_email_dtm_sparse[train_index,]
+model_sparsed_tm_test <- complete_email_dtm_sparse[-train_index,]
+
+
+training_sparse_set <- as.data.frame(as.matrix(model_sparsed_tm_train))
+training_sparse_set$email_group <- model_train$email_group
+
+test_sparse_set <- as.data.frame(as.matrix(model_sparsed_tm_test))
+test_sparse_set$email_group <- model_test$email_group
+
+random_forest_sparse_classifier <- randomForest(x = training_sparse_set[-13], y = training_sparse_set$email_group, ntree = 10)
+
+prediction_sparse <- predict(random_forest_sparse_classifier, newdata = test_sparse_set[-13])
+
+```
+
+Taking a glance on the results
+
+```{r}
+confusion_matrix_sparse <- table(test_sparse_set[, 13], prediction_sparse)
+kable(confusion_matrix_sparse, align = rep('c', 2)) %>% 
+  kable_styling(bootstrap_options = c("striped"), full_width = F)
+```
+
+
+As we can see on the result on the confusion matrix above, that upon running the random forest model again using the document term matrix  there is a smaller terms observed.We can also determined from the result that it is performing worse than our model which has a larger set of terms in our document term matrix.Having said although it is performing buit then its only predicting approximately 97% compared to the 99% predicted in the previous data used.
+
+# Conclusion
+
+With this approach using a document term matrix and the frequency of terms in our corpus it will help us classify the emails very easily either a spam or ham email in a more effective manner.Even though there are a lot of method that we could be able to used to classify emails but based on the results above we can still used this approach to classify it quickly.
+
+
